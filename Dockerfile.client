@@ -1,0 +1,23 @@
+# Build the client
+FROM golang:1.22 AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/client ./cmd/client
+
+# Run the client
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/
+COPY --from=builder /go/bin/client .
+ENV SERVER_HOST=localhost:8080
+
+ENTRYPOINT ["./client"]
